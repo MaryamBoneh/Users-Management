@@ -3,7 +3,7 @@ from sqlite3 import connect
 
 class Database:
     @staticmethod
-    def insert(name, birth_day, national_code):
+    def insert(name, national_code, birth_day):
         try:
             my_con = connect('users.db')
             my_cursor = my_con.cursor()
@@ -35,7 +35,7 @@ class Database:
         try:
             my_con = connect('users.db')
             my_cursor = my_con.cursor()
-            my_cursor.execute(f"DELETE FROM messages WHERE ID = {id}")
+            my_cursor.execute(f"DELETE FROM user WHERE ID = {id}")
             my_con.commit()
             my_con.close()
             return True

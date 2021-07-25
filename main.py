@@ -1,16 +1,11 @@
 # This Python file uses the following encoding: utf-8
 import sys
-import os
 from Database import Database
-from Add_User import AddUser
-
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, Qt
-from PySide6 import QtCore, QtGui
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 from functools import partial
-from datetime import datetime
 
 
 class Main(QWidget):
@@ -19,10 +14,6 @@ class Main(QWidget):
         loader = QUiLoader()
         self.ui = loader.load('main.ui')
         self.ui.show()
-        self.ui.setWindowIcon(QtGui.QIcon('assets/img/icon.png'))
-        # self.ui.btn_light.setIcon(QIcon('assets/img/light_mode.png'))
-        # self.ui.btn_del_all.setIcon(QIcon('assets/img/delete.png'))
-
         self.ui.btn_add.clicked.connect(self.addNewUser)
         self.users = self.readMessages()
         self.length = len(self.users)
@@ -34,70 +25,86 @@ class Main(QWidget):
         for i, user in enumerate(users):
             label = QLabel()
             label.setText(user[1])
-            self.ui.gl_users.addWidget(label, i, 1, alignment=Qt.Alignment())
 
             btn = QPushButton()
             btn.setText('×')
             btn.setStyleSheet('max-width: 18px; min-height: 18px; background-color: #F05454;'
-                              ' color: white; border: 0px; border-radius: 5px;')
+                              ' color: white; border: 0px; border-radius: 9px;')
 
-            self.ui.gl_users.addWidget(btn, i, 0, alignment=Qt.Alignment())
-            btn.clicked.connect(partial(self.deleteMessage, user[0], btn, label))
+            avatar = QPushButton()
+            avatar.setStyleSheet('max-width: 70px; min-height: 70px; border: 0px; border-radius: 35px;')
+            avatar.setIcon(QIcon(f"assets/img/users/{user[4]}"))
+            avatar.setIconSize(QSize(70, 70))
+
+            self.ui.gl_users.addWidget(avatar, i, 0, alignment=Qt.Alignment())
+            self.ui.gl_users.addWidget(label, i, 1, alignment=Qt.Alignment())
+            self.ui.gl_users.addWidget(btn, i, 2, alignment=Qt.Alignment())
+            btn.clicked.connect(partial(self.deleteUser, user[0], btn, label, avatar))
         return users
 
     def addNewUser(self):
-        print('in add new user-----------')
-        AddUser.addNewUser()
+        AddUser(self.length)
 
-
-
-    def deleteMessage(self, id, btn, label):
+    def deleteUser(self, id, btn, label, avatar):
         response = Database.delete(id)
         if response:
             btn.hide()
             label.hide()
+            avatar.hide()
             self.msgBox("Your message deleted!")
         else:
             self.msgBox("Database error!")
 
-    def deleteAllMessage(self):
-        response = Database.deleteAll()
-        if response:
-            self.msgBox("all of messages deleted!")
-            self.readMessages()
+    def msgBox(self, msg):
+        msg_box = QMessageBox()
+        msg_box.setText(msg)
+        msg_box.exec_()
 
-            for i in range(self.ui.gl_messages.count()):
-                self.ui.gl_messages.itemAt(i).widget().hide()
+
+
+class AddUser(QWidget):
+    def __init__(self, len):
+        super(AddUser, self).__init__()
+        loader = QUiLoader()
+        self.ui = loader.load('add-User.ui')
+        self.ui.show()
+        self.ui.btn_choose.setIcon(QIcon('assets/img/camera2.png'))
+        self.ui.btn_submit.clicked.connect(self.submit)
+        self.length = len
+        print('self.length: ', self.length)
+
+    def submit(self):
+        name = self.ui.txt_name.text()
+        nationalcode = self.ui.txt_code.text()
+        birthday = self.ui.txt_birthday.text()
+
+        if name != "" and nationalcode != "":
+            response = Database.insert(name, nationalcode, birthday)
+            if response:
+                self.length += 1
+                label = QLabel()
+                label.setText(name)
+
+                btn = QPushButton()
+                btn.setText('×')
+                btn.setStyleSheet('max-width: 18px; min-height: 18px; background-color: #F05454;'
+                                  ' color: white; border: 0px; border-radius: 9px;')
+
+                avatar = QPushButton()
+                avatar.setStyleSheet('max-width: 70px; min-height: 70px; border: 0px; border-radius: 35px;')
+                avatar.setIcon(QIcon(f"assets/img/users/user[4]"))
+                avatar.setIconSize(QSize(70, 70))
+
+                self.ui.gl_users.addWidget(avatar, self.length, 0, alignment=Qt.Alignment())
+                self.ui.gl_users.addWidget(label, self.length, 1, alignment=Qt.Alignment())
+                self.ui.gl_users.addWidget(btn, self.length, 2, alignment=Qt.Alignment())
+                btn.clicked.connect(partial(self.deleteUser, self.length, btn, label))
+
+                self.msgBox("User added successfully!")
+            else:
+                self.msgBox("Database error!")
         else:
-            self.msgBox("Database error!")
-
-    def changeTheme(self):
-        if self.lightTheme:
-            self.ui.setStyleSheet('background-color: #282846;')
-            self.ui.btn_send.setStyleSheet(
-                'background-color: #007580; color: #d8ebe4; border-radius: 3px; border: 0px;')
-            self.ui.lbl_caption.setStyleSheet('background-color: #007580; color: #d8ebe4;')
-            self.ui.lbl_header.setStyleSheet('background-color: #007580; border-radius: 5px; border: 0px;')
-            self.ui.btn_del_all.setStyleSheet('background-color: #007580; border: 0px;')
-            self.ui.btn_light.setStyleSheet('background-color: #007580; border: 0px;')
-
-            for i in range(self.ui.gl_messages.count()):
-                if type(self.ui.gl_messages.itemAt(i).widget()) == QLabel:
-                    self.ui.gl_messages.itemAt(i).widget().setStyleSheet('color: #fff;')
-        else:
-            self.ui.setStyleSheet('background-color: #fad586;')
-            self.ui.btn_send.setStyleSheet(
-                'background-color: #184d47; color: #96bb7c; border-radius: 3px; border: 0px;')
-            self.ui.lbl_caption.setStyleSheet('background-color: #184d47; color: #96bb7c;')
-            self.ui.lbl_header.setStyleSheet('background-color: #184d47; border-radius: 5px; border: 0px;')
-            self.ui.btn_del_all.setStyleSheet('background-color: #184d47; border: 0px;')
-            self.ui.btn_light.setStyleSheet('background-color: #184d47; border: 0px;')
-
-            for i in range(self.ui.gl_messages.count()):
-                if type(self.ui.gl_messages.itemAt(i).widget()) == QLabel:
-                    self.ui.gl_messages.itemAt(i).widget().setStyleSheet('color: #000;')
-
-        self.lightTheme = not self.lightTheme
+            self.msgBox("Error: feilds are empty!")
 
     def msgBox(self, msg):
         msg_box = QMessageBox()
