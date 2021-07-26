@@ -3,12 +3,12 @@ from sqlite3 import connect
 
 class Database:
     @staticmethod
-    def insert(name, national_code, birth_day):
+    def insert(name, national_code, birth_day, image):
         try:
             my_con = connect('users.db')
             my_cursor = my_con.cursor()
-            my_cursor.execute(f"INSERT INTO user(NAME, BIRTH_DAY, NATIONAL_CODE)"
-                              f"VALUES('{name}','{birth_day}','{national_code}')")
+            my_cursor.execute(f"INSERT INTO user(NAME, BIRTH_DAY, NATIONAL_CODE, IMAGE)"
+                              f"VALUES('{name}','{birth_day}','{national_code}','{image}.jpg')")
             my_con.commit()
             my_con.close()
             return True

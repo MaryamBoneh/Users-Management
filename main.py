@@ -1,7 +1,6 @@
-# This Python file uses the following encoding: utf-8
 import sys
 from Database import Database
-import cv2
+from Camera import Camera
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import Qt, QSize
@@ -18,7 +17,6 @@ class Main(QWidget):
         self.ui.btn_add.clicked.connect(self.addNewUser)
         self.users = self.readMessages()
         self.length = len(self.users)
-        # self.ui.txt_message.installEventFilter(self)
 
     def readMessages(self):
         users = Database.select()
@@ -72,7 +70,7 @@ class AddUser(QWidget):
         self.ui.btn_submit.clicked.connect(self.submit)
         self.ui.btn_choose.clicked.connect(self.takePhoto)
         self.length = len
-        print('self.length: ', self.length)
+        print('self.length: ',self.length)
 
     def submit(self):
         name = self.ui.txt_name.text()
@@ -80,7 +78,7 @@ class AddUser(QWidget):
         birthday = self.ui.txt_birthday.text()
 
         if name != "" and nationalcode != "":
-            response = Database.insert(name, nationalcode, birthday)
+            response = Database.insert(name, nationalcode, birthday, self.length+1)
             if response:
                 self.length += 1
                 label = QLabel()
@@ -93,14 +91,14 @@ class AddUser(QWidget):
 
                 avatar = QPushButton()
                 avatar.setStyleSheet('max-width: 70px; min-height: 70px; border: 0px; border-radius: 35px;')
-                avatar.setIcon(QIcon(f"assets/img/users/user[4]"))
+                avatar.setIcon(QtGui.QIcon(f"assets/img/users/{self.length-1}.jpg"))
                 avatar.setIconSize(QSize(70, 70))
 
                 widget.ui.gl_users.addWidget(avatar, self.length, 0, alignment=Qt.Alignment())
                 widget.ui.gl_users.addWidget(label, self.length, 1, alignment=Qt.Alignment())
                 widget.ui.gl_users.addWidget(btn, self.length, 2, alignment=Qt.Alignment())
-                btn.clicked.connect(partial(widget.deleteUser, self.length, btn, label))
-
+                btn.clicked.connect(partial(widget.deleteUser, self.length, btn, label, avatar))
+                self.ui.close()
                 self.msgBox("User added successfully!")
             else:
                 self.msgBox("Database error!")
@@ -108,43 +106,12 @@ class AddUser(QWidget):
             self.msgBox("Error: feilds are empty!")
 
     def takePhoto(self):
-        camera = Camera()
-
+        camera = Camera(self.length, self.ui.lbl_photo)
 
     def msgBox(self, msg):
         msg_box = QMessageBox()
         msg_box.setText(msg)
         msg_box.exec_()
-
-
-class Camera(QWidget):
-    def __init__(self):
-        super(Camera, self).__init__()
-        loader = QUiLoader()
-        self.ui = loader.load('filters.ui')
-        self.ui.show()
-        # self.ui.f1.clicked.connect(self.submit)
-
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        video = cv2.VideoCapture(0)
-
-        while True:
-            validation, frame = video.read()
-            if validation is not True:
-                break
-
-            faces = face_cascade.detectMultiScale(frame, 1.3, 5)
-            for (x, y, w, h) in faces:
-                roi = frame[y:y + h, x:x + w]
-
-            img = QtGui.QImage(frame, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
-            pix = QtGui.QPixmap.fromImage(img)
-            self.ui.f1.setIcon(QtGui.QIcon(pix))
-            self.ui.f1.setIconSize(QSize(200, 200))
-
-
-            cv2.imshow('output', roi)
-            cv2.waitKey(30)
 
 
 if __name__ == "__main__":
